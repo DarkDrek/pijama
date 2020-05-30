@@ -10,11 +10,12 @@ use nom::{
 };
 use nom_locate::position;
 
-use pijama_ast::{Located, Location};
+use pijama_ast::{Located, Location, Span};
 
-use crate::parser::{ParsingError, Span};
+use crate::parser::ParsingError;
 
-use std::fmt::Display;
+use nom::lib::std::fmt::Formatter;
+use std::{fmt, fmt::Display};
 
 /// Helper parser for expressions surrounded by a delimiter.
 ///
@@ -99,5 +100,32 @@ pub fn with_context<'a, O>(
     move |i| match inner(i) {
         Ok(o) => Ok(o),
         Err(e) => Err(e.map(|error| ParsingError::with_context(i, context.to_string(), error))),
+    }
+}
+
+pub fn log_success<'a, O>(
+    inner: impl Fn(Span<'a>) -> IResult<Span<'a>, O, ParsingError<'a>>,
+    f: impl Fn(&O, LogSpanAdapter),
+) -> impl Fn(Span<'a>) -> IResult<Span<'a>, O, ParsingError<'a>> {
+    move |i| match inner(i) {
+        Ok(o) => {
+            f(&o.1, (&o.0).into());
+            Ok(o)
+        }
+        Err(e) => Err(e),
+    }
+}
+
+pub struct LogSpanAdapter<'a>(&'a Span<'a>);
+
+impl<'a> From<&'a Span<'a>> for LogSpanAdapter<'a> {
+    fn from(span: &'a Span<'a>) -> Self {
+        LogSpanAdapter(span)
+    }
+}
+
+impl<'a> Display for LogSpanAdapter<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.0.location_line(), self.0.get_column())
     }
 }

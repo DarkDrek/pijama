@@ -10,10 +10,13 @@ use nom::{
 };
 use nom_locate::position;
 
-use pijama_ast::{Literal, Located, Location};
+use log::debug;
 
-use crate::parser::{helpers::with_context, IResult, Span};
+use pijama_ast::{Literal, Located, Location, Span};
 
+use crate::parser::{helpers::with_context, IResult};
+
+use crate::parser::helpers::log_success;
 use std::borrow::Cow;
 
 /// Parses a [`Literal`](crate::ast::Literal).
@@ -26,14 +29,17 @@ use std::borrow::Cow;
 pub fn literal(input: Span) -> IResult<Located<Literal>> {
     with_context(
         "Expected literal (true, false, unit) or number",
-        alt((
-            map(tag("true"), |span| Located::new(Literal::Bool(true), span)),
-            map(tag("false"), |span| {
-                Located::new(Literal::Bool(false), span)
-            }),
-            map(tag("unit"), |span| Located::new(Literal::Unit, span)),
-            map(number, |located_num| located_num.map(Literal::Number)),
-        )),
+        log_success(
+            alt((
+                map(tag("true"), |span| Located::new(Literal::Bool(true), span)),
+                map(tag("false"), |span| {
+                    Located::new(Literal::Bool(false), span)
+                }),
+                map(tag("unit"), |span| Located::new(Literal::Unit, span)),
+                map(number, |located_num| located_num.map(Literal::Number)),
+            )),
+            |l, loc| debug!("Parsed literal {:?} at {}", l.content, loc),
+        ),
     )(input)
 }
 

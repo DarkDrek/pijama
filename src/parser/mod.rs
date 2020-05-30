@@ -31,6 +31,8 @@ use nom::{
     Err::*,
 };
 
+use log::debug;
+
 use pijama_ast::{Block, Located, Span};
 
 use crate::{LangError::Parse, LangResult};
@@ -57,6 +59,7 @@ type IResult<'a, T> = nom::IResult<Span<'a>, T, ParsingError<'a>>;
 /// This function fails if the whole string is not consumed during parsing or if there is an error
 /// with the inner parsers.
 pub fn parse(input: &str) -> LangResult<Located<Block>> {
+    debug!("Started parsing");
     let span = Span::new(input);
     let result: IResult<Located<Block>> = all_consuming(surrounded(block0, multispace0))(span);
     match result {
